@@ -1,5 +1,6 @@
 import numpy as np
-import snl_newton
+from snl_newton import newton
+import math
 
 ## Determination des donnees du probleme
 # Le nom generique permet de definir le nom du script
@@ -8,11 +9,10 @@ import snl_newton
 # En retour de ce script les valeurs suivantes sont definies :
 
 def importation():
-    nomScript = input('Entrez le nom du script utilisé : ')
     import donnees1
 
     global FFX
-    global nbrsol, sol, distsol, itermax, epsf, Xmax, xlim, ylim, nbrlig, nbrcol, maxcol, maxmap, cmap
+    global nbrsol, sol, distsol, itermax, epsF, Xmax, xlim, ylim, nbrlig, nbrcol, maxcol, maxmap, cmap
 
     # FFX : pointeur (handle) vers la fonction systeme traitee
     FFX = donnees1.function
@@ -30,7 +30,7 @@ def importation():
     itermax = donnees1.itermax
 
     # epsf : valeur pour le test de conv. |F(X)| < epsF
-    epsf = donnees1.epsF
+    epsF = donnees1.epsF
 
     # Xmax : valeur pour le test d'arret |X| > Xmax
     Xmax = donnees1.Xmax
@@ -63,10 +63,8 @@ colormap(cmap);
 
 ## Fonction d'indexation des couleurs :
 
-def iterMapping(num_sol, iter, itermax, maxcol, maxmap):
-    
-
-icol=@(num_sol, iter) floor((((iter-1)/itermax)^(1/7))*maxcol(num_sol)+1)+maxmap-sum(maxcol(num_sol:end))
+def colorMapping(num_sol, iter, itermax, maxcol, maxmap):
+    math.floor((((iter-1)/itermax)**(1/7))*maxcol[num_sol]+1)+maxmap-np.sum(maxcol[num_sol+1:])
 
 # Le principe de icol fonctionne comme suit:
 #    - 0 <= (iter-1)/itermax < 1 donc apres multiplication par la
@@ -85,30 +83,6 @@ icol=@(num_sol, iter) floor((((iter-1)/itermax)^(1/7))*maxcol(num_sol)+1)+maxmap
 #     iter et nb_nuance et cela permmets ainsi de prendre plus de nuances
 #     pour un nombre d'itérations faible
 
-%% Initialisation du calcul ...
-C = zeros(nbrlig, nbrcol);
-
-%% Les boucles de calculs
-compteur_iter=0;     % Initialisation du compteur d'itérations
-tic % on declenche le chrono (cf. doc tic toc pour l'unité)
-for j=1 :nbrlig      % On parcours les lignes
-    for i=1 :nbrcol  % On parcours les colones
-        X = [x(i);y(j)];     % Initialisation des coordonnées au pixel considéré
-        [X,conv,iter]= SNL_NEWTON(FFX,X,epsF,itermax,Xmax);  % Recherche de la solution
-        if conv == 1             % Dans le cas de convergence
-            for k=1:nbrsol  
-                T(k) = norm(X-sol(:,k))<distsol; % T est une liste de booléens de taille nbrsol (1 pour la solution)
-            end
-            num_sol = find(T);  % Renvoi directement le numero de la solution (1 apparait une seule fois dans T)
-            compteur_iter = compteur_iter+iter;  % incrementation des itérations
-        else 
-            num_sol = nbrsol+1;       % Cas de non convergence et de divergence
-        end
-        C(j,i) = real(icol(num_sol,iter));  % attribution du numero de couleur de la Cmap
-    end
-end
-            
-tfin = toc; % on enregistre le temps de calcul
 
 %% Post processing : calcul de pconv et de imoy
 Mat_conv = C <= sum(maxcol(1:nbrsol)); % Matrice de booléen (1 si convergence, 0 sinon)
@@ -155,22 +129,20 @@ if __name__ == "__main__":
         for i in y: # On parcours les colones
             X = np.array([[x],
                           [y]])    # Initialisation des coordonnées au pixel considéré
-            Xsol, conv, iter = snl_newton.snl_newton(FFX, X, epsF, itermax, Xmax) # Recherche de la solution
+            (Xsol, conv, iter) = newton(FFX, X, epsF, itermax, Xmax) # Recherche de la solution
 
-            if conv              # Dans le cas de convergence
-                for k in range (nbrsol):
-                    if 
+            if conv:             # Dans le cas de convergence
+            
+                for k in range (nbrsol): # Renvoi directement le numero de la solution (il y a forcément une solution)
+                    if np.linalg.norm(Xsol-sol[:,k]) < distsol:
+                        num_sol = k
 
-                for k=1:nbrsol  
-                    T(k) = np.linalg.norm(Xsol-sol[:,k]) < distsol # T est une liste de booléens de taille nbrsol (1 pour la solution)
-
-                num_sol = find(T)   # Renvoi directement le numero de la solution (1 apparait une seule fois dans T)
                 compteur_iter = compteur_iter + iter   # incrementation des itérations
 
-            else 
-                num_sol = nbrsol+1;       # Cas de non convergence et de divergence
-
-            C(j,i) = real(icol(num_sol,iter));  # attribution du numero de couleur de la Cmap
+            else:
+                num_sol = nbrsol+1       # Cas de non convergence et de divergence
+                
+            C[j,i] = icol(num_sol,iter);  # attribution du numero de couleur de la Cmap
 
     elapse = time.time() - t
 

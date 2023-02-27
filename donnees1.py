@@ -61,7 +61,7 @@ nbrcol=1000
 maxcol = np.array([40, 40, 40, 1]).reshape(1,4) # 1 couleur par solution + 1 couleur pour la divergence
 
 # maxmap : nombre total de couleur = sum(maxcol)
-maxmap = sum(maxcol) # nombre total de couleurs
+maxmap = np.sum(maxcol[:]) # nombre total de couleurs
 
 # cmap : palette RVB des maxmap couleurs
 cmap =[1.0000    1.0000    1.0000
